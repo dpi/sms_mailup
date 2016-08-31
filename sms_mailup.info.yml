@@ -1,0 +1,4 @@
+name: MailUp
+type: module
+description: 'Integrates MailUp SMS with SMS Framework.'
+core: 8.x
