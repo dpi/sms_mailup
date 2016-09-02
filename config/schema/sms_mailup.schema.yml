@@ -1,0 +1,31 @@
+sms_gateway.settings.mailup:
+  type: sms_gateway_settings
+  label: 'Mailup'
+  mapping:
+    account:
+      type: mapping
+      mapping:
+        id:
+          type: integer
+          label: 'Account ID'
+        username:
+          type: string
+          label: 'Username'
+        password:
+          type: string
+          label: 'Password'
+    list:
+      type: mapping
+      mapping:
+        id:
+          type: integer
+          label: 'List ID'
+        guid:
+          type: string
+          label: 'List GUID'
+        secret:
+          type: string
+          label: 'List Secret'
+    campaign_code:
+      type: string
+      label: 'Campaign Code'

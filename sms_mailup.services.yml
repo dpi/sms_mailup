@@ -1,0 +1,4 @@
+services:
+  sms_mailup.mailup:
+    class: Drupal\sms_mailup\MailUpService
+    arguments: ['@http_client']
