@@ -2,7 +2,6 @@
 
 namespace Drupal\sms_mailup\Plugin\SmsGateway;
 
-use Drupal\sms\Message\SmsMessageStatus;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use GuzzleHttp\ClientInterface;
 use GuzzleHttp\Exception\RequestException;
@@ -14,6 +13,8 @@ use Drupal\sms\Message\SmsMessageInterface;
 use Drupal\sms\Message\SmsDeliveryReport;
 use Drupal\sms\Message\SmsMessageResult;
 use Drupal\sms_mailup\MailUpServiceInterface;
+use Drupal\sms\Message\SmsMessageReportStatus;
+use Drupal\sms\Message\SmsMessageResultStatus;
 
 /**
  * @SmsGateway(
@@ -243,15 +244,14 @@ class MailUp extends SmsGatewayPluginBase implements ContainerFactoryPluginInter
     $description = isset($body['Description']) ? $body['Description'] : '';
 
     if ($http_code == 200) {
-      $result->setStatus(SmsMessageStatus::QUEUED);
-      $report->setStatus(SmsMessageStatus::QUEUED);
+      $report->setStatus(SmsMessageReportStatus::QUEUED);
       $report->setTimeQueued(REQUEST_TIME);
     }
     else if ($app_code == 301) {
       // 301: The message was sent but the statistics are incorrect due to an
       // error.
-      $result->setStatus(SmsMessageStatus::QUEUED);
-      $report->setStatus(SmsMessageStatus::QUEUED);
+      $report->setStatus(SmsMessageReportStatus::QUEUED);
+      $report->setTimeQueued(REQUEST_TIME);
     }
     else {
       $message = (string) $this->t('Error @code: @description', [
@@ -263,76 +263,76 @@ class MailUp extends SmsGatewayPluginBase implements ContainerFactoryPluginInter
 
       if ($app_code == 100) {
         // No request found.
-        $result->setStatus(SmsMessageStatus::ERROR);
+        $result->setStatus(SmsMessageResultStatus::ERROR);
       }
       else if ($app_code == 101) {
         // Missing or empty parameters: [a list of parameters].
-        $result->setStatus(SmsMessageStatus::ERROR);
+        $result->setStatus(SmsMessageResultStatus::ERROR);
       }
       else if ($app_code == 102) {
         // ListGUID is not valid for the current account or list.
-        $result->setStatus(SmsMessageStatus::ERROR);
+        $result->setStatus(SmsMessageResultStatus::ERROR);
       }
       else if ($app_code == 103) {
         // ListSecret is not valid for the current account or list.
-        $result->setStatus(SmsMessageStatus::ERROR);
+        $result->setStatus(SmsMessageResultStatus::ERROR);
       }
       else if ($app_code == 104) {
         // SMS sender name is empty for list nr. N
-        $result->setStatus(SmsMessageStatus::ACCOUNT_ERROR);
+        $result->setStatus(SmsMessageResultStatus::ACCOUNT_ERROR);
       }
       else if ($app_code == 105) {
         // Number or Prefix missing in the recipient.
-        $report->setStatus(SmsMessageStatus::INVALID_RECIPIENT);
+        $report->setStatus(SmsMessageReportStatus::INVALID_RECIPIENT);
       }
       if ($app_code == 106) {
         // Recipient is invalid.
-        $report->setStatus(SmsMessageStatus::INVALID_RECIPIENT);
+        $report->setStatus(SmsMessageReportStatus::INVALID_RECIPIENT);
       }
       else if ($app_code == 107) {
         // Content too long.
-        $report->setStatus(SmsMessageStatus::CONTENT_INVALID);
+        $report->setStatus(SmsMessageReportStatus::CONTENT_INVALID);
       }
       else if ($app_code == 201) {
         // listID is not valid for the current account or list.
-        $result->setStatus(SmsMessageStatus::ERROR);
+        $result->setStatus(SmsMessageResultStatus::ERROR);
       }
       else if ($app_code == 202) {
         // ListGUID is not in a correct format.
-        $result->setStatus(SmsMessageStatus::ERROR);
+        $result->setStatus(SmsMessageResultStatus::ERROR);
       }
       else if ($app_code == 203) {
         // ListSecret is not in a correct format.
-        $result->setStatus(SmsMessageStatus::ERROR);
+        $result->setStatus(SmsMessageResultStatus::ERROR);
       }
       else if ($app_code == 204) {
         // Cannot send SMS to USA recipient.
-        $report->setStatus(SmsMessageStatus::INVALID_RECIPIENT);
+        $report->setStatus(SmsMessageReportStatus::INVALID_RECIPIENT);
       }
       else if ($app_code == 205) {
         // Sending denied: NO CREDITS.
-        $result->setStatus(SmsMessageStatus::NO_CREDIT);
+        $result->setStatus(SmsMessageResultStatus::NO_CREDIT);
       }
       else if ($app_code == 206) {
         // SMS number [recipient] is in optout state for list nr.[idList].
-        $report->setStatus(SmsMessageStatus::INVALID_RECIPIENT);
+        $report->setStatus(SmsMessageReportStatus::INVALID_RECIPIENT);
       }
       else if ($app_code == 207) {
         // Provided SMS sender is not certified and cannot be used to send
         // messages.
-        $result->setStatus(SmsMessageStatus::ACCOUNT_ERROR);
+        $result->setStatus(SmsMessageResultStatus::ACCOUNT_ERROR);
       }
       else if ($app_code == 250) {
         // Access denied.
-        $result->setStatus(SmsMessageStatus::ERROR);
+        $result->setStatus(SmsMessageResultStatus::ERROR);
       }
       else if ($app_code == 300) {
         // Operation failed: a generic error occur.
-        $result->setStatus(SmsMessageStatus::ERROR);
+        $result->setStatus(SmsMessageResultStatus::ERROR);
       }
       else if ($app_code == 302) {
         // Error delivering message to [recipient].
-        $report->setStatus(SmsMessageStatus::INVALID_RECIPIENT);
+        $report->setStatus(SmsMessageReportStatus::INVALID_RECIPIENT);
       }
     }
 
