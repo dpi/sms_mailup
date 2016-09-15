@@ -198,7 +198,7 @@ class MailUp extends SmsGatewayPluginBase implements ContainerFactoryPluginInter
 
     $result = new SmsMessageResult();
     $report = (new SmsDeliveryReport())
-      ->setRecipients([$recipient]);
+      ->setRecipient($recipient);
 
     $account_id = $this->configuration['account']['id'];
     $username = $this->configuration['account']['username'];
@@ -254,32 +254,25 @@ class MailUp extends SmsGatewayPluginBase implements ContainerFactoryPluginInter
       $report->setTimeQueued(REQUEST_TIME);
     }
     else {
-      $message = (string) $this->t('Error @code: @description', [
-        '@code' => $app_code,
-        '@description' => $description,
-      ]);
-      $result->setStatusMessage($message);
-      $report->setStatusMessage($message);
-
       if ($app_code == 100) {
         // No request found.
-        $result->setStatus(SmsMessageResultStatus::ERROR);
+        $result->setError(SmsMessageResultStatus::ERROR);
       }
       else if ($app_code == 101) {
         // Missing or empty parameters: [a list of parameters].
-        $result->setStatus(SmsMessageResultStatus::ERROR);
+        $result->setError(SmsMessageResultStatus::ERROR);
       }
       else if ($app_code == 102) {
         // ListGUID is not valid for the current account or list.
-        $result->setStatus(SmsMessageResultStatus::ERROR);
+        $result->setError(SmsMessageResultStatus::ERROR);
       }
       else if ($app_code == 103) {
         // ListSecret is not valid for the current account or list.
-        $result->setStatus(SmsMessageResultStatus::ERROR);
+        $result->setError(SmsMessageResultStatus::ERROR);
       }
       else if ($app_code == 104) {
         // SMS sender name is empty for list nr. N
-        $result->setStatus(SmsMessageResultStatus::ACCOUNT_ERROR);
+        $result->setError(SmsMessageResultStatus::ACCOUNT_ERROR);
       }
       else if ($app_code == 105) {
         // Number or Prefix missing in the recipient.
@@ -295,15 +288,15 @@ class MailUp extends SmsGatewayPluginBase implements ContainerFactoryPluginInter
       }
       else if ($app_code == 201) {
         // listID is not valid for the current account or list.
-        $result->setStatus(SmsMessageResultStatus::ERROR);
+        $result->setError(SmsMessageResultStatus::ERROR);
       }
       else if ($app_code == 202) {
         // ListGUID is not in a correct format.
-        $result->setStatus(SmsMessageResultStatus::ERROR);
+        $result->setError(SmsMessageResultStatus::ERROR);
       }
       else if ($app_code == 203) {
         // ListSecret is not in a correct format.
-        $result->setStatus(SmsMessageResultStatus::ERROR);
+        $result->setError(SmsMessageResultStatus::ERROR);
       }
       else if ($app_code == 204) {
         // Cannot send SMS to USA recipient.
@@ -311,7 +304,7 @@ class MailUp extends SmsGatewayPluginBase implements ContainerFactoryPluginInter
       }
       else if ($app_code == 205) {
         // Sending denied: NO CREDITS.
-        $result->setStatus(SmsMessageResultStatus::NO_CREDIT);
+        $result->setError(SmsMessageResultStatus::NO_CREDIT);
       }
       else if ($app_code == 206) {
         // SMS number [recipient] is in optout state for list nr.[idList].
@@ -320,19 +313,34 @@ class MailUp extends SmsGatewayPluginBase implements ContainerFactoryPluginInter
       else if ($app_code == 207) {
         // Provided SMS sender is not certified and cannot be used to send
         // messages.
-        $result->setStatus(SmsMessageResultStatus::ACCOUNT_ERROR);
+        $result->setError(SmsMessageResultStatus::ACCOUNT_ERROR);
       }
       else if ($app_code == 250) {
         // Access denied.
-        $result->setStatus(SmsMessageResultStatus::ERROR);
+        $result->setError(SmsMessageResultStatus::ERROR);
       }
       else if ($app_code == 300) {
         // Operation failed: a generic error occur.
-        $result->setStatus(SmsMessageResultStatus::ERROR);
+        $result->setError(SmsMessageResultStatus::ERROR);
       }
       else if ($app_code == 302) {
         // Error delivering message to [recipient].
         $report->setStatus(SmsMessageReportStatus::INVALID_RECIPIENT);
+      }
+      else {
+        $result->setError(SmsMessageResultStatus::ERROR);
+      }
+
+      // Set message.
+      $message = (string) $this->t('Error @code: @description', [
+        '@code' => $app_code,
+        '@description' => $description,
+      ]);
+      if ($report->getStatus()) {
+        $report->setStatusMessage($message);
+      }
+      else {
+        $result->setErrorMessage($message);
       }
     }
 
