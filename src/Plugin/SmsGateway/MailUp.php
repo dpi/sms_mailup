@@ -21,6 +21,8 @@ use Drupal\sms\Message\SmsMessageResultStatus;
  *   id = "mailup",
  *   label = @Translation("MailUp"),
  *   outgoing_message_max_recipients = 1,
+ *   reports_push = TRUE,
+ *   reports_pull = TRUE,
  * )
  */
 class MailUp extends SmsGatewayPluginBase implements ContainerFactoryPluginInterface {
