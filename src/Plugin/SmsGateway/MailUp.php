@@ -12,9 +12,9 @@ use Drupal\sms\Plugin\SmsGatewayPluginBase;
 use Drupal\sms\Message\SmsMessageInterface;
 use Drupal\sms\Message\SmsDeliveryReport;
 use Drupal\sms\Message\SmsMessageResult;
-use Drupal\sms_mailup\MailUpServiceInterface;
 use Drupal\sms\Message\SmsMessageReportStatus;
 use Drupal\sms\Message\SmsMessageResultStatus;
+use Drupal\sms_mailup\MailUpServiceInterface;
 
 /**
  * @SmsGateway(
@@ -84,6 +84,10 @@ class MailUp extends SmsGatewayPluginBase implements ContainerFactoryPluginInter
         'username' => '',
         'password' => '',
       ],
+      'oauth' => [
+        'client_id' => '',
+        'client_secret' => '',
+      ],
       'list' => [
         'id' => '',
         'guid' => '',
@@ -100,10 +104,12 @@ class MailUp extends SmsGatewayPluginBase implements ContainerFactoryPluginInter
   public function buildConfigurationForm(array $form, FormStateInterface $form_state) {
     $form = parent::buildConfigurationForm($form, $form_state);
 
+    $guid_placeholder = 'XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX';
+
     $form['account'] = [
       '#type' => 'details',
       '#tree' => TRUE,
-      '#open' => 'TRUE',
+      '#open' => TRUE,
       '#title' => $this->t('Account'),
     ];
 
@@ -129,10 +135,34 @@ class MailUp extends SmsGatewayPluginBase implements ContainerFactoryPluginInter
       '#default_value' => $this->configuration['account']['password'],
     ];
 
+    $form['oauth'] = [
+      '#type' => 'details',
+      '#tree' => TRUE,
+      '#open' => TRUE,
+      '#title' => $this->t('Access keys'),
+      '#description' => $this->t('Access keys can be found by going to <em>Developer » Your apps » {my app name} » Access keys</em> in your MailUp console. Create an app for your website if you have not done this yet.'),
+    ];
+
+    $form['oauth']['client_id'] = [
+      '#title' => $this->t('Client ID'),
+      '#type' => 'textfield',
+      '#required' => TRUE,
+      '#default_value' => $this->configuration['oauth']['client_id'],
+      '#placeholder' => $guid_placeholder,
+    ];
+
+    $form['oauth']['client_secret'] = [
+      '#title' => $this->t('Client secret'),
+      '#type' => 'textfield',
+      '#required' => TRUE,
+      '#default_value' => $this->configuration['oauth']['client_secret'],
+      '#placeholder' => $guid_placeholder,
+    ];
+
     $form['list'] = [
       '#type' => 'details',
       '#tree' => TRUE,
-      '#open' => 'TRUE',
+      '#open' => TRUE,
       '#title' => $this->t('List'),
       '#description' => $this->t('List details can be found by going to <em>Settings » Account settings » Developer\'s Corner » Codes table » Lists</em> in your MailUp console.'),
     ];
@@ -149,6 +179,7 @@ class MailUp extends SmsGatewayPluginBase implements ContainerFactoryPluginInter
       '#type' => 'textfield',
       '#required' => TRUE,
       '#default_value' => $this->configuration['list']['guid'],
+      '#placeholder' => $guid_placeholder,
     ];
 
     $form['campaign_code'] = [
@@ -182,8 +213,10 @@ class MailUp extends SmsGatewayPluginBase implements ContainerFactoryPluginInter
    */
   public function submitConfigurationForm(array &$form, FormStateInterface $form_state) {
     $this->configuration['account']['id'] = (integer) $form_state->getValue(['account', 'id']);
-    $this->configuration['account']['username'] = $form_state->getValue(['account', 'username']);
+    $this->configuration['account']['username'] = trim($form_state->getValue(['account', 'username']));
     $this->configuration['account']['password'] = $form_state->getValue(['account', 'password']);
+    $this->configuration['oauth']['client_id'] = trim($form_state->getValue(['oauth', 'client_id']));
+    $this->configuration['oauth']['client_secret'] = trim($form_state->getValue(['oauth', 'client_secret']));
     $this->configuration['list']['id'] = (integer) $form_state->getValue(['list', 'id']);
     $this->configuration['list']['guid'] = $form_state->getValue(['list', 'guid']);
     $this->configuration['campaign_code'] = $form_state->getValue(['campaign_code']);
@@ -212,8 +245,6 @@ class MailUp extends SmsGatewayPluginBase implements ContainerFactoryPluginInter
       ->getListSecret($username, $password, $list_guid);
 
     $campaign_code = $this->configuration['campaign_code'];
-
-
     $settings = [
       'headers' => [
         'Content-Type' => 'application/json',

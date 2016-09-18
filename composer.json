@@ -12,5 +12,8 @@
     }
   ],
   "license": "GPL-2.0+",
-  "minimum-stability": "dev"
+  "minimum-stability": "dev",
+  "require": {
+    "league/oauth2-client": "1.4.*"
+  }
 }

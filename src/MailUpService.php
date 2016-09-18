@@ -2,8 +2,8 @@
 
 namespace Drupal\sms_mailup;
 
-use GuzzleHttp\ClientInterface;
 use GuzzleHttp\Exception\RequestException;
+use GuzzleHttp\ClientInterface;
 use Drupal\Component\Serialization\Json;
 
 /**
@@ -19,22 +19,53 @@ class MailUpService implements MailUpServiceInterface {
   protected $httpClient;
 
   /**
+   * MailUp authentication service.
+   *
+   * @var \Drupal\sms_mailup\MailupAuthenticationInterface
+   */
+  protected $mailupAuthentication;
+
+  /**
    * Constructs a new MailUpService object.
    *
    * @param \GuzzleHttp\ClientInterface $http_client
    *   The Guzzle HTTP client.
+   * @param \Drupal\sms_mailup\MailupAuthenticationInterface $mailUpAuthentication
+   *   MailUp authentication service.
    */
-  function __construct(ClientInterface $http_client) {
+  function __construct(ClientInterface $http_client, MailupAuthenticationInterface $mailUpAuthentication) {
     $this->httpClient = $http_client;
+    $this->mailupAuthentication = $mailUpAuthentication;
   }
 
   /**
-   * Get the secret for a list, store it in local state since plugins can't
-   * look into their entity, or update configuration dynamically.
+   * {@inheritdoc}
    */
-  function getListSecret($username, $password, $list_guid) {
-    $id = 'sms_mailup.list.secrets.' . $list_guid;
-    if ($secret = \Drupal::state()->get($id)) {
+  public function getDetails($gateway_id) {
+    $provider = $this->mailupAuthentication
+      ->createOAuthProvider($gateway_id);
+    $token = $this->mailupAuthentication->getToken($gateway_id);
+    if (FALSE === $token) {
+      return FALSE;
+    }
+
+    $request = $provider->getAuthenticatedRequest(
+      'GET',
+      'https://services.mailup.com/API/v1.1/Rest/ConsoleService.svc/Console/Authentication/Info',
+      $token
+    );
+
+    $response = $this->httpClient->send($request);
+    $result = Json::decode((String) $response->getBody());
+    return $result;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  function getListSecret($username, $password, $guid) {
+    $key = 'sms_mailup.list.secrets.' . $guid;
+    if ($secret = \Drupal::state()->get($key)) {
       return $secret;
     }
 
@@ -46,7 +77,7 @@ class MailUpService implements MailUpServiceInterface {
         'Content-Type' => 'application/json',
       ],
       'json' => [
-        'ListGUID' => $list_guid,
+        'ListGUID' => $guid,
       ],
     ];
 
@@ -60,12 +91,12 @@ class MailUpService implements MailUpServiceInterface {
     }
 
     if ($response->getStatusCode() == 200) {
-      // {"Data":{"ListSecret":"$the-secret"},"Code":"0","Description":"","State":"DONE"}
+      // {"Data":{"ListSecret":"$the-secret"},"Code":"0","Description":"","State":"DONE"}.
       $body_encoded = (string) $response->getBody();
       $body = !empty($body_encoded) ? Json::decode($body_encoded) : [];
       if (!empty($body['Data']['ListSecret'])) {
         $secret = $body['Data']['ListSecret'];
-        \Drupal::state()->set($id, $secret);
+        \Drupal::state()->set($key, $secret);
         return $secret;
       }
     }

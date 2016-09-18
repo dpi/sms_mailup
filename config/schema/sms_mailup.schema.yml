@@ -2,6 +2,15 @@ sms_gateway.settings.mailup:
   type: sms_gateway_settings
   label: 'Mailup'
   mapping:
+    oauth:
+      type: mapping
+      mapping:
+        client_id:
+          type: string
+          label: 'Client ID'
+        client_secret:
+          type: string
+          label: 'Client secret'
     account:
       type: mapping
       mapping:
